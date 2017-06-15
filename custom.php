@@ -222,7 +222,11 @@ echo $trimmed_content;
 $id = icl_object_id($post->ID, 'page', false, ICL_LANGUAGE_CODE);
 echo __('Benefit now from the high-grade tuning software at an affordable price.', 'filterpage');
 ?>        
-<?php the_field('field_name', 'option'); ?>
+<?php the_field('field_name', 'option'); 
+//    sudo -s
+ //   chmod -R 777 /var/www/html/testing/wp-content/
+
+?>
 
 
 
