@@ -225,8 +225,181 @@ echo __('Benefit now from the high-grade tuning software at an affordable price.
 <?php the_field('field_name', 'option'); 
 //    sudo -s
  //   chmod -R 777 /var/www/html/testing/wp-content/
+////////////////////////////////////////////////////////////////////////
+
+add_action('wp_ajax_my_action', 'my_action');
+
+function my_action() {
+
+    global $wpdb;
+    $cat_ids = $_POST['cat_ids'];
+    $from = $_POST['from'];
+    $to = $_POST['to'];
+
+    $d = explode(',', $cat_ids);
+    $paged = (get_query_var('paged')) ? get_query_var('paged') : 1;
+    $args = array(
+        'post_type' => 'product',
+        'posts_per_page' => -1,
+        'paged' => $paged,
+        'post_status' => 'publish',
+        
+        'meta_query' => array(
+            array(
+                'key' => '_price',
+                'value' => $from,
+                'compare' => '>='
+            ),
+            array(
+                'key' => '_price',
+                'value' => $to,
+                'compare' => '<='
+            )
+        ),
+        'tax_query' => array(
+            array(
+                'taxonomy' => 'product_cat',
+                'field' => 'slug',
+                'terms' => $d,
+            ),
+        ),
+        
+    );
+
+    $query = new WP_Query($args);
+
+    while ($query->have_posts()) : $query->the_post();
+        wc_get_template_part('content', 'product');
+    endwhile;
+
+    
+    wp_die();
+}
+
+add_filter('widget_text', 'do_shortcode');
+
+function get_filter($atts) {
+
+    $taxonomy = 'product_cat';
+    $orderby = 'name';
+    $show_count = 1;      // 1 for yes, 0 for no
+    $pad_counts = 0;      // 1 for yes, 0 for no
+    $hierarchical = 1;      // 1 for yes, 0 for no  
+    $title = '';
+    $empty = 0;
+
+    $args = array(
+        'taxonomy' => $taxonomy,
+        'orderby' => $orderby,
+        'show_count' => $show_count,
+        'pad_counts' => $pad_counts,
+        'hierarchical' => $hierarchical,
+        'title_li' => $title,
+        'hide_empty' => $empty
+    );
+    $all_categories = get_categories($args);
+
+    $output.='<ul class="product-categories">';
+    foreach ($all_categories as $cat) {
+        if ($cat->category_parent == 0) {
+            $category_id = $cat->term_id;
+            $output.= '<li class="cat-item cat-item-17"><input type="checkbox" class="filter_cat" value="' . $cat->slug . '" />' . $cat->name . '</li>';
+            $args2 = array(
+                'taxonomy' => $taxonomy,
+                'child_of' => 0,
+                'parent' => $category_id,
+                'orderby' => $orderby,
+                'show_count' => $show_count,
+                'pad_counts' => $pad_counts,
+                'hierarchical' => $hierarchical,
+                'title_li' => $title,
+                'hide_empty' => $empty
+            );
+            $sub_cats = get_categories($args2);
+            if ($sub_cats) {
+                foreach ($sub_cats as $sub_category) {
+                    $output.= $sub_category->name;
+                }
+            }
+        }
+    }
+
+    $output.='</ul>';
+    return $output;
+}
+
+add_shortcode('myfilter', 'get_filter'); //[myfilter]
+
 
 ?>
+<script>var ajaxurl = "<?php echo admin_url('admin-ajax.php') ?>";</script>
+<script>
+jQuery(document).ready(function () {
+
+    jQuery(".price_slider_wrapper .button").attr("type", "button");
+    jQuery(".price_slider_wrapper .button").click(function () {
+        var favorite = [];
+        var cat_ids = '';
+        var fromval = '';
+        var toval = '';
+        jQuery.each(jQuery(".filter_cat:checked"), function () {
+            favorite.push(jQuery(this).val());
+        });
+
+        var fromval = jQuery(".price_label .from").text();
+        var toval = jQuery(".price_label .to").text();
+        var fromval = fromval.replace(/^\D+/g, '');
+        var toval = toval.replace(/^\D+/g, '');
+
+        cat_ids = favorite.join(", ");
+        var data = {
+            'action': 'my_action',
+            'cat_ids': cat_ids,
+            'from': fromval,
+            'to': toval,
+        };
+        jQuery.post(ajaxurl, data, function (response) {
+            jQuery(".products").html("");
+            jQuery(".products").html(response);
+        });
+
+
+    });
+
+
+    jQuery(".filter_cat").change(function () {
+        
+        var favorite = [];
+        var cat_ids = '';
+        var fromval = '';
+        var toval = '';
+        jQuery.each(jQuery(".filter_cat:checked"), function () {
+            favorite.push(jQuery(this).val());
+        });
+
+        var fromval = jQuery(".price_label .from").text();
+        var toval = jQuery(".price_label .to").text();
+        var fromval = fromval.replace(/^\D+/g, '');
+        var toval = toval.replace(/^\D+/g, '');
+
+        cat_ids = favorite.join(", ");
+        var data = {
+            'action': 'my_action',
+            'cat_ids': cat_ids,
+            'from': fromval,
+            'to': toval,
+        };
+        jQuery.post(ajaxurl, data, function (response) {
+            jQuery(".products").html("");
+            jQuery(".products").html(response);
+        });
+
+    });
+
+});
+
+
+</script>
 
 
 
