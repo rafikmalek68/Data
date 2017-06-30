@@ -31,7 +31,7 @@ function html_form_code() {
 }
 
 function deliver_mail() {
-
+	global $wpdb;
 	// if the submit button is clicked, send the email
 	if ( isset( $_POST['cf-submitted'] ) ) {
 
@@ -44,6 +44,19 @@ function deliver_mail() {
 		
 		// get the blog administrator's email address
 		$to = get_option( 'admin_email' );
+		
+			
+			$table_name = $wpdb->prefix . 'liveshoutbox';			
+			$wpdb->insert( 
+				$table_name, 
+				array( 
+					'time' => current_time( 'mysql' ), 
+					'name' => $name, 
+					'text' => $message, 
+				) 
+			);
+		
+		
 
 		$headers = "From: $name <$email>" . "\r\n";
 
@@ -67,5 +80,39 @@ function cf_shortcode() {
 }
 
 add_shortcode( 'sitepoint_contact_form', 'cf_shortcode' );
+
+
+
+
+global $jal_db_version;
+$jal_db_version = '1.0';
+
+
+function jal_install() {
+	global $wpdb;
+	global $jal_db_version;
+
+	$table_name = $wpdb->prefix . 'liveshoutbox';
+	
+	$charset_collate = $wpdb->get_charset_collate();
+
+	$sql = "CREATE TABLE $table_name (
+		id mediumint(9) NOT NULL AUTO_INCREMENT,
+		time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+		name tinytext NOT NULL,
+		text text NOT NULL,
+		url varchar(55) DEFAULT '' NOT NULL,
+		PRIMARY KEY  (id)
+	) $charset_collate;";
+
+	require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+	dbDelta( $sql );
+
+	add_option( 'jal_db_version', $jal_db_version );
+}
+
+
+register_activation_hook( __FILE__, 'jal_install' );
+
 
 ?>
